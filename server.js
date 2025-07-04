@@ -14,6 +14,7 @@ import path from 'path';
 import session from 'express-session';
 import passport from 'passport';
 import { Strategy as Auth0Strategy } from 'passport-auth0';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -102,6 +103,20 @@ function ensureAuthenticated(req, res, next) {
 app.get('/profile', ensureAuthenticated, (req, res) => {
   res.send(`Hello, ${req.user.displayName || req.user.id}!`);
 });
+
+// Write GOOGLE_CREDENTIALS env variable to file if present (for Azure compatibility)
+if (process.env.GOOGLE_CREDENTIALS) {
+  try {
+    fs.writeFileSync(
+      'google-credentials.json',
+      process.env.GOOGLE_CREDENTIALS,
+      { encoding: 'utf8' }
+    );
+    console.log('Google credentials file written from environment variable.');
+  } catch (err) {
+    console.error('Failed to write Google credentials file:', err);
+  }
+}
 
 // Initialize the Vision client with your credentials
 const client = new vision.ImageAnnotatorClient({
