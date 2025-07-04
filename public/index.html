@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Notes Converter</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1><i class="fas fa-brain"></i> Smart Notes Converter</h1>
+            <p>Transform your notes into structured summaries and interactive quizzes</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload & Extract Section -->
+            <section class="card upload-section" id="uploadSection">
+                <div class="card-header">
+                    <i class="fas fa-upload"></i>
+                    <h2>Upload & Extract Text</h2>
+                </div>
+                <div class="card-body">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <h3>Drop your notes here</h3>
+                            <p>or click to browse files</p>
+                            <p class="file-types">Supports: Images (JPG, PNG), PDFs, Text files</p>
+                        </div>
+                        <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.pdf,.txt" hidden>
+                    </div>
+                    <button class="btn btn-primary" id="extractBtn" disabled>
+                        <i class="fas fa-magic"></i> Extract Text
+                    </button>
+                </div>
+            </section>
+
+            <!-- Extracted Text Section -->
+            <section class="card text-section" id="textSection" style="display: none;">
+                <div class="card-header">
+                    <i class="fas fa-file-text"></i>
+                    <h2>Extracted Text</h2>
+                </div>
+                <div class="card-body">
+                    <div class="text-content">
+                        <textarea id="extractedText" placeholder="Extracted text will appear here..." readonly></textarea>
+                    </div>
+                    <div class="summary-preferences" style="margin-bottom: 20px;">
+                        <label for="summaryStyle">Summary Style:</label>
+                        <select id="summaryStyle">
+                            <option value="Bullet Points">Bullet Points</option>
+                            <option value="Descriptive">Descriptive</option>
+                            <option value="Objective">Objective</option>
+                            <option value="Narrative">Narrative</option>
+                            <option value="Q&A">Q&amp;A</option>
+                        </select>
+                        <label for="summaryLength" style="margin-left: 10px;">Length:</label>
+                        <select id="summaryLength">
+                            <option value="Short">Short</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Long">Long</option>
+                        </select>
+                        <label for="summaryIntent" style="margin-left: 10px;">Intent:</label>
+                        <select id="summaryIntent">
+                            <option value="Exam Revision">Exam Revision</option>
+                            <option value="Presentation Notes">Presentation Notes</option>
+                            <option value="Explain to Beginner">Explain to Beginner</option>
+                            <option value="Blog Writing">Blog Writing</option>
+                        </select>
+                        <label for="summaryLanguage" style="margin-left: 10px;">Language:</label>
+                        <select id="summaryLanguage">
+                            <option value="English">English</option>
+                            <option value="French">French</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="German">German</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" id="summarizeBtn">
+                            <i class="fas fa-list"></i> Generate Summary
+                        </button>
+                        <button class="btn btn-primary" id="quizBtn">
+                            <i class="fas fa-question-circle"></i> Create Quiz
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Summary Section -->
+            <section class="card summary-section" id="summarySection" style="display: none;">
+                <div class="card-header">
+                    <i class="fas fa-list-ul"></i>
+                    <h2>Generated Summary</h2>
+                </div>
+                <div class="card-body">
+                    <div class="summary-content" id="summaryContent">
+                        <!-- Summary will be inserted here -->
+                    </div>
+                    <div class="summary-actions">
+                        <button class="btn btn-primary" id="downloadPdfBtn">
+                            <i class="fas fa-download"></i> Download PDF
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p id="loadingText">Processing...</p>
+            </div>
+        </div>
+
+        <!-- Quiz Modal -->
+        <div class="modal" id="quizModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-quiz"></i> Interactive Quiz</h2>
+                    <button class="modal-close" id="closeQuizModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="quiz-container">
+                    <!-- Progress Section -->
+                    <div class="quiz-progress">
+                        <div class="progress-info">
+                            <p>Question <span id="currentQuestion">1</span> of <span id="totalQuestions">3</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Question Section -->
+                    <div class="question-section">
+                        <h3 id="questionText">Loading question...</h3>
+                        <div class="options-container" id="optionsContainer">
+                            <!-- Options will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Navigation Section -->
+                    <div class="quiz-navigation">
+                        <button class="btn btn-secondary" id="prevBtn" disabled>
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button class="btn btn-primary" id="nextBtn" disabled>
+                            Next <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div class="quiz-results" id="quizResults" style="display: none;">
+                        <div class="results-header">
+                            <h3>Quiz Complete!</h3>
+                            <div class="score-display">
+                                <span id="finalScore">0/3</span>
+                                <span id="scorePercentage">0%</span>
+                            </div>
+                        </div>
+                        <div class="results-summary" id="resultsSummary">
+                            <!-- Results summary will be inserted here -->
+                        </div>
+                        <button class="btn btn-primary retry-btn" id="retryQuizBtn">
+                            <i class="fas fa-redo"></i> Retry Quiz
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
