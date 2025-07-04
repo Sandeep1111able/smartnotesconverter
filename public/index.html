@@ -10,6 +10,24 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <i class="fas fa-brain"></i> Smart Notes Converter
+        </div>
+        <ul class="navbar-links">
+            <li><a href="#" class="nav-link home-link"><i class="fas fa-home"></i> Home</a></li>
+        </ul>
+        <div class="navbar-actions">
+            <span id="navbar-user" style="display:none;"></span>
+            <button class="btn btn-secondary" id="loginBtn" style="display:none;">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+            <button class="btn btn-primary" id="logoutBtn" style="display:none;">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
     <div class="container">
         <!-- Header -->
         <header class="header">

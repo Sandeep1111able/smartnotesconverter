@@ -6,6 +6,9 @@ import fetch from 'node-fetch';
 import FormData from 'form-data';
 import vision from '@google-cloud/vision';
 import path from 'path';
+import session from 'express-session';
+import passport from 'passport';
+import { Strategy as Auth0Strategy } from 'passport-auth0';
 
 dotenv.config();
 
@@ -16,6 +19,84 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static('public'));
+
+// --- Auth0 Config ---
+const authConfig = {
+  domain: process.env.AUTH0_DOMAIN,
+  clientID: process.env.AUTH0_CLIENT_ID,
+  clientSecret: process.env.AUTH0_CLIENT_SECRET,
+  callbackURL: 'http://localhost:5000/callback'
+};
+
+// --- Session Middleware ---
+app.use(
+  session({
+    secret: 'your-session-secret', // Change this to a strong secret in production!
+    resave: false,
+    saveUninitialized: true
+  })
+);
+
+// --- Passport Auth0 Setup ---
+passport.use(
+  new Auth0Strategy(
+    {
+      domain: authConfig.domain,
+      clientID: authConfig.clientID,
+      clientSecret: authConfig.clientSecret,
+      callbackURL: authConfig.callbackURL
+    },
+    function (accessToken, refreshToken, extraParams, profile, done) {
+      return done(null, profile);
+    }
+  )
+);
+
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// --- Auth Routes ---
+
+// Start login
+app.get('/login', passport.authenticate('auth0', {
+  scope: 'openid email profile'
+}));
+
+// Auth0 callback
+app.get('/callback', passport.authenticate('auth0', {
+  failureRedirect: '/'
+}), (req, res) => {
+  res.redirect('/');
+});
+
+// Logout
+app.get('/logout', (req, res) => {
+  req.logout(() => {
+    res.redirect(
+      `https://${authConfig.domain}/v2/logout?client_id=${authConfig.clientID}&returnTo=http://localhost:5000`
+    );
+  });
+});
+
+// Get current user info
+app.get('/user', (req, res) => {
+  if (!req.user) return res.json({ user: null });
+  res.json({ user: req.user });
+});
+
+// --- Protect routes example ---
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) return next();
+  res.redirect('/login');
+}
+
+// Example of a protected route
+app.get('/profile', ensureAuthenticated, (req, res) => {
+  res.send(`Hello, ${req.user.displayName || req.user.id}!`);
+});
 
 // Initialize the Vision client with your credentials
 const client = new vision.ImageAnnotatorClient({

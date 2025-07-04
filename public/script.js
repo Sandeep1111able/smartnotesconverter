@@ -912,5 +912,49 @@ function downloadSummaryAsPDF() {
     }
 }
 
-// Initialize application when DOM is loaded
-document.addEventListener('DOMContentLoaded', init); 
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    setupNavbarAuth();
+});
+
+function setupNavbarAuth() {
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const navbarUser = document.getElementById('navbar-user');
+    if (!loginBtn || !logoutBtn || !navbarUser) return;
+
+    // Fetch user info from backend
+    fetch('/user')
+        .then(res => res.json())
+        .then(data => {
+            if (data.user) {
+                // User is logged in
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-flex';
+                navbarUser.style.display = 'inline-block';
+                // Show user name or email
+                navbarUser.textContent = data.user.displayName || data.user.nickname || (data.user.emails && data.user.emails[0]) || 'User';
+            } else {
+                // Not logged in
+                loginBtn.style.display = 'inline-flex';
+                logoutBtn.style.display = 'none';
+                navbarUser.style.display = 'none';
+                navbarUser.textContent = '';
+            }
+        })
+        .catch(() => {
+            loginBtn.style.display = 'inline-flex';
+            logoutBtn.style.display = 'none';
+            navbarUser.style.display = 'none';
+            navbarUser.textContent = '';
+        });
+
+    // Login button click
+    loginBtn.addEventListener('click', () => {
+        window.location.href = '/login';
+    });
+    // Logout button click
+    logoutBtn.addEventListener('click', () => {
+        window.location.href = '/logout';
+    });
+} 
