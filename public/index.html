@@ -137,6 +137,29 @@
             </div>
         </div>
 
+        <!-- Error Modal -->
+        <div class="modal" id="errorModal" style="display: none;">
+            <div class="modal-content error-modal">
+                <div class="modal-header error-header">
+                    <h2><i class="fas fa-exclamation-triangle"></i> Error</h2>
+                    <button class="modal-close" id="closeErrorModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="error-content">
+                        <i class="fas fa-exclamation-circle error-icon"></i>
+                        <p id="errorMessage">An error occurred. Please try again.</p>
+                    </div>
+                    <div class="error-actions">
+                        <button class="btn btn-primary" id="closeErrorBtn">
+                            <i class="fas fa-check"></i> Got it
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Quiz Modal -->
         <div class="modal" id="quizModal" style="display: none;">
             <div class="modal-content">

@@ -314,6 +314,45 @@ body {
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
+/* Error Modal Styles */
+.error-modal {
+    max-width: 500px;
+}
+
+.error-header {
+    background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+}
+
+.error-content {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.error-icon {
+    font-size: 3rem;
+    color: #dc3545;
+    margin-bottom: 20px;
+}
+
+.error-content p {
+    font-size: 1.1rem;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.error-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px 30px 30px;
+    flex-wrap: wrap;
+}
+
+.modal-body {
+    padding: 0;
+}
+
 .modal-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;

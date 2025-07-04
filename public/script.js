@@ -58,7 +58,12 @@ const elements = {
     finalScore: null,
     scorePercentage: null,
     resultsSummary: null,
-    retryQuizBtn: null
+    retryQuizBtn: null,
+    // Error modal elements
+    errorModal: null,
+    closeErrorModal: null,
+    errorMessage: null,
+    closeErrorBtn: null
 };
 
 /**
@@ -100,6 +105,12 @@ function initializeElements() {
     elements.scorePercentage = document.getElementById('scorePercentage');
     elements.resultsSummary = document.getElementById('resultsSummary');
     elements.retryQuizBtn = document.getElementById('retryQuizBtn');
+    
+    // Error modal elements
+    elements.errorModal = document.getElementById('errorModal');
+    elements.closeErrorModal = document.getElementById('closeErrorModal');
+    elements.errorMessage = document.getElementById('errorMessage');
+    elements.closeErrorBtn = document.getElementById('closeErrorBtn');
 }
 
 /**
@@ -129,6 +140,17 @@ function setupEventListeners() {
     elements.quizModal.addEventListener('click', (e) => {
         if (e.target === elements.quizModal) {
             closeQuizModal();
+        }
+    });
+
+    // Error modal events
+    elements.closeErrorModal.addEventListener('click', closeErrorModal);
+    elements.closeErrorBtn.addEventListener('click', closeErrorModal);
+
+    // Close error modal when clicking outside
+    elements.errorModal.addEventListener('click', (e) => {
+        if (e.target === elements.errorModal) {
+            closeErrorModal();
         }
     });
 }
@@ -179,7 +201,7 @@ function handleFile(file) {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf', 'text/plain'];
     
     if (!allowedTypes.includes(file.type)) {
-        showError('Please select a valid file type: JPG, PNG, PDF, or TXT');
+        showError('Please select a file in one of these formats: JPG, PNG, PDF, or TXT');
         return;
     }
 
@@ -201,7 +223,7 @@ function handleFile(file) {
  */
 async function extractTextFromFile() {
     if (!currentFile) {
-        showError('Please select a file first');
+        showError('Please select a file to extract text from');
         return;
     }
 
@@ -236,7 +258,7 @@ async function extractTextFromFile() {
 
     } catch (error) {
         hideLoading();
-        showError(`Failed to extract text: ${error.message}`);
+        showError('Sorry, I couldn\'t extract text from your file. Please make sure the file is clear and readable, then try again.');
         console.error('OCR Error:', error);
     }
 }
@@ -298,7 +320,7 @@ async function performOCR(file) {
 async function generateSummary() {
     const text = elements.extractedText.value.trim();
     if (!text) {
-        showError('Please extract text first');
+        showError('Please extract text from your file first');
         return;
     }
 
@@ -350,7 +372,7 @@ async function generateSummary() {
 
     } catch (error) {
         hideLoading();
-        showError(`Failed to generate summary: ${error.message}`);
+        showError('Sorry, I couldn\'t generate a summary right now. Please check your internet connection and try again.');
         console.error('Summary Error:', error);
     }
 }
@@ -361,7 +383,7 @@ async function generateSummary() {
 async function generateQuiz() {
     const text = elements.extractedText.value.trim();
     if (!text) {
-        showError('Please extract text first');
+        showError('Please extract text from your file first');
         return;
     }
 
@@ -427,7 +449,7 @@ ${text}`;
 
     } catch (error) {
         hideLoading();
-        showError(`Failed to create quiz: ${error.message}`);
+        showError('Sorry, I couldn\'t create a quiz right now. Please check your internet connection and try again.');
         console.error('Quiz Error:', error);
     }
 }
@@ -727,14 +749,31 @@ function hideLoading() {
 function showSuccess(message) {
     // Simple success notification - could be enhanced with a toast library
     console.log('Success:', message);
+    // You could add a toast notification here in the future
+    // For now, we'll just log to console
 }
 
 /**
- * Show error message
+ * Show error modal with graceful error handling
  */
 function showError(message) {
-    // Simple error notification - could be enhanced with a toast library
-    alert(`Error: ${message}`);
+    // Hide loading overlay first
+    hideLoading();
+    
+    // Set error message
+    elements.errorMessage.textContent = message;
+    
+    // Show error modal
+    elements.errorModal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+/**
+ * Close error modal
+ */
+function closeErrorModal() {
+    elements.errorModal.style.display = 'none';
+    document.body.style.overflow = 'auto';
 }
 
 /**
@@ -745,7 +784,7 @@ function downloadSummaryAsPDF() {
     const originalText = elements.extractedText.value;
     
     if (!summaryContent.trim()) {
-        showError('No summary available to download');
+        showError('Please generate a summary first before downloading');
         return;
     }
 
@@ -908,7 +947,7 @@ function downloadSummaryAsPDF() {
         
     } catch (error) {
         console.error('PDF generation error:', error);
-        showError('Failed to generate PDF. Please try again.');
+        showError('Sorry, I couldn\'t download the PDF right now. Please try again.');
     }
 }
 

@@ -1,4 +1,9 @@
 // To use ESM imports, add "type": "module" to your package.json
+// Required environment variables:
+// - OCR_SPACE_API_KEY: For OCR.Space API
+// - OPENAI_API_KEY: For OpenAI GPT-4 (primary AI service)
+// - GEMINI_API_KEY: For Google Gemini (fallback AI service)
+// - AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET: For Auth0 authentication
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -124,7 +129,7 @@ app.post('/api/ocr', async (req, res) => {
     // Continue to OCR.Space fallback
   }
 
-  // Fallback: Try OCR.Space
+  //Fallback: Try OCR.Space
   try {
     const FormData = (await import('form-data')).default;
     const formData = new FormData();
@@ -151,10 +156,13 @@ app.post('/api/ocr', async (req, res) => {
   }
 });
 
-// Proxy endpoint for OpenAI
+// Unified AI endpoint: try OpenAI first, then Gemini as fallback
 app.post('/api/openai', async (req, res) => {
+    const { prompt, maxTokens } = req.body;
+    
+    // Try OpenAI first
     try {
-        const { prompt, maxTokens } = req.body;
+        console.log('Attempting OpenAI request...');
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -171,10 +179,85 @@ app.post('/api/openai', async (req, res) => {
                 temperature: 0.7
             })
         });
+        
+        if (!response.ok) {
+            throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json();
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+        
+        // Check if OpenAI returned an error in the response body
+        if (data.error) {
+            throw new Error(data.error.message || 'OpenAI API error');
+        }
+        
+        console.log('OpenAI request successful');
+        return res.json(data);
+        
+    } catch (openaiError) {
+        console.error('OpenAI error:', openaiError.message);
+        
+        // Fallback to Gemini
+        try {
+            console.log('Attempting Gemini fallback...');
+            
+            if (!process.env.GEMINI_API_KEY) {
+                throw new Error('Gemini API key not configured');
+            }
+            
+            const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `You are a helpful assistant that creates structured summaries and educational quizzes. Please respond to the following request: ${prompt}`
+                        }]
+                    }],
+                    generationConfig: {
+                        maxOutputTokens: maxTokens || 500,
+                        temperature: 0.7
+                    }
+                })
+            });
+            
+            if (!geminiResponse.ok) {
+                throw new Error(`Gemini API error: ${geminiResponse.status} ${geminiResponse.statusText}`);
+            }
+            
+            const geminiData = await geminiResponse.json();
+            
+            // Check if Gemini returned an error
+            if (geminiData.error) {
+                throw new Error(geminiData.error.message || 'Gemini API error');
+            }
+            
+            // Transform Gemini response to match OpenAI format
+            const transformedResponse = {
+                choices: [{
+                    message: {
+                        content: geminiData.candidates[0].content.parts[0].text
+                    }
+                }],
+                model: 'gemini-pro',
+                usage: {
+                    prompt_tokens: 0,
+                    completion_tokens: 0,
+                    total_tokens: 0
+                }
+            };
+            
+            console.log('Gemini fallback successful');
+            return res.json(transformedResponse);
+            
+        } catch (geminiError) {
+            console.error('Gemini error:', geminiError.message);
+            return res.status(500).json({ 
+                error: `Both OpenAI and Gemini failed. OpenAI error: ${openaiError.message}. Gemini error: ${geminiError.message}` 
+            });
+        }
     }
 });
 
