@@ -31,7 +31,7 @@ const authConfig = {
   domain: process.env.AUTH0_DOMAIN,
   clientID: process.env.AUTH0_CLIENT_ID,
   clientSecret: process.env.AUTH0_CLIENT_SECRET,
-  callbackURL: 'http://localhost:5000/callback'
+  callbackURL: process.env.AUTH0_CALLBACK_URL
 };
 
 // --- Session Middleware ---
