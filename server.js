@@ -37,7 +37,7 @@ const authConfig = {
 // --- Session Middleware ---
 app.use(
   session({
-    secret: 'your-session-secret', // Change this to a strong secret in production!
+    secret: process.env.SESSION_SECRET || 'your-session-secret',
     resave: false,
     saveUninitialized: true
   })
@@ -82,7 +82,7 @@ app.get('/callback', passport.authenticate('auth0', {
 app.get('/logout', (req, res) => {
   req.logout(() => {
     res.redirect(
-      `https://${authConfig.domain}/v2/logout?client_id=${authConfig.clientID}&returnTo=http://localhost:5000`
+      `https://${authConfig.domain}/v2/logout?client_id=${authConfig.clientID}&returnTo=${process.env.AUTH0_LOGOUT_URL}`
     );
   });
 });
