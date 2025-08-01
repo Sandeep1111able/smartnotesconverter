@@ -536,12 +536,21 @@ ${text}`;
 /**
  * Open the modal to ask for a summary title.
  */
-function saveSummary() {
+async function saveSummary() {
     const summaryContent = elements.summaryContent.innerHTML;
     if (!summaryContent.trim()) {
         showError('Please generate a summary first before saving');
         return;
     }
+    
+    // Check if user is authenticated
+    const isAuthenticated = await checkAuthStatus();
+    if (!isAuthenticated) {
+        showError('Please log in to save summaries');
+        window.location.href = '/login';
+        return;
+    }
+    
     openTitleModal();
 }
 
@@ -565,12 +574,19 @@ async function handleSaveTitle() {
         const response = await fetch('/api/save-summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
                 title: title,
                 content: summaryContent,
                 originalText: originalText
             })
         });
+
+        if (response.status === 401) {
+            // User not authenticated, redirect to login
+            window.location.href = '/login';
+            return;
+        }
 
         if (!response.ok) {
             throw new Error('Failed to save summary');
@@ -609,6 +625,22 @@ function closeTitleModal() {
 }
 
 /**
+ * Check if user is authenticated
+ */
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('/api/auth-status', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        return data.authenticated;
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        return false;
+    }
+}
+
+/**
  * Opens the dashboard and fetches saved content.
  */
 async function openDashboard() {
@@ -616,7 +648,16 @@ async function openDashboard() {
     elements.dashboardContent.innerHTML = '<p>Loading saved content...</p>';
 
     try {
-        const response = await fetch('/api/user-summaries');
+        const response = await fetch('/api/user-summaries', {
+            credentials: 'include'
+        });
+        
+        if (response.status === 401) {
+            // User not authenticated, redirect to login
+            window.location.href = '/login';
+            return;
+        }
+        
         if (!response.ok) {
             throw new Error('Failed to fetch saved content');
         }

@@ -23,7 +23,15 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// Configure CORS properly for authentication
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://smartnotesconverter.azurewebsites.net', 'https://dev-hkokt28n7mmyf6e3.us.auth0.com']
+    : ['http://localhost:5000', 'http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static('public'));
@@ -95,9 +103,24 @@ app.get('/user', (req, res) => {
   res.json({ user: req.user });
 });
 
+// Check authentication status
+app.get('/api/auth-status', (req, res) => {
+  res.json({ 
+    authenticated: req.isAuthenticated(),
+    user: req.user || null 
+  });
+});
+
 // --- Protect routes example ---
 function ensureAuthenticated(req, res, next) {
   if (req.isAuthenticated()) return next();
+  
+  // For API requests, return JSON error instead of redirect
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  // For web requests, redirect to login
   res.redirect('/login');
 }
 
