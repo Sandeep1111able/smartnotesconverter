@@ -31,6 +31,8 @@ let currentQuestionIndex = 0;
 let userAnswers = [];
 let quizCompleted = false;
 let savedSummaries = [];
+let currentViewSummaryId = null;
+let currentEditSummaryId = null;
 
 
 
@@ -83,6 +85,16 @@ const elements = {
     closeViewSummaryModal: null,
     viewSummaryTitle: null,
     viewSummaryContent: null,
+    questionInput: null,
+    askQuestionBtn: null,
+    answerOutput: null,
+    // Edit Summary modal elements
+    editSummaryModal: null,
+    closeEditSummaryModal: null,
+    editSummaryTitle: null,
+    editSummaryContent: null,
+    cancelEditBtn: null,
+    saveEditBtn: null,
     // Profile modal elements
     profileLink: null,
     profileModal: null,
@@ -154,6 +166,21 @@ function initializeElements() {
     elements.closeViewSummaryModal = document.getElementById('closeViewSummaryModal');
     elements.viewSummaryTitle = document.getElementById('viewSummaryTitle');
     elements.viewSummaryContent = document.getElementById('viewSummaryContent');
+    elements.questionInput = document.getElementById('questionInput');
+    elements.askQuestionBtn = document.getElementById('askQuestionBtn');
+    elements.answerOutput = document.getElementById('answerOutput');
+
+    // Edit Summary modal elements
+    elements.editSummaryModal = document.getElementById('editSummaryModal');
+    elements.closeEditSummaryModal = document.getElementById('closeEditSummaryModal');
+    elements.editSummaryTitle = document.getElementById('editSummaryTitle');
+    elements.editSummaryContent = document.getElementById('editSummaryContent');
+    elements.cancelEditBtn = document.getElementById('cancelEditBtn');
+    elements.saveEditBtn = document.getElementById('saveEditBtn');
+
+    // Mobile navbar
+    elements.hamburgerBtn = document.getElementById('hamburgerBtn');
+    elements.navbar = document.querySelector('.navbar');
 
     // Profile modal elements
     elements.profileLink = document.getElementById('profileLink');
@@ -205,8 +232,26 @@ function setupEventListeners() {
     elements.savedContentLink.addEventListener('click', openDashboard);
     elements.closeDashboardModal.addEventListener('click', closeDashboard);
 
-    // View Summary modal event
+    // View Summary modal events
     elements.closeViewSummaryModal.addEventListener('click', closeViewSummaryModal);
+    elements.askQuestionBtn.addEventListener('click', askQuestion);
+    
+    // Allow Enter key to ask question
+    elements.questionInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !elements.askQuestionBtn.disabled) {
+            askQuestion();
+        }
+    });
+
+    // Edit Summary modal events
+    elements.closeEditSummaryModal.addEventListener('click', closeEditSummaryModal);
+    elements.cancelEditBtn.addEventListener('click', closeEditSummaryModal);
+    elements.saveEditBtn.addEventListener('click', saveEditedSummary);
+
+    // Mobile navbar toggle
+    elements.hamburgerBtn.addEventListener('click', () => {
+        elements.navbar.classList.toggle('mobile-open');
+    });
 
     // Profile modal events
     elements.profileLink.addEventListener('click', openProfileModal);
@@ -689,12 +734,16 @@ function displaySavedContent(summaries) {
 
     elements.dashboardContent.innerHTML = summaries.map(item => `
         <div class="saved-item" data-id="${item._id}">
-            <span class="saved-item-title">${item.title}</span>
+            <div class="saved-item-info">
+                <i class="fas fa-file-alt saved-item-icon"></i>
+                <span class="saved-item-title">${item.title}</span>
+            </div>
             <div class="saved-item-actions">
-                <button class="btn btn-secondary" onclick="viewSummary('${item._id}')"><i class="fas fa-eye"></i> View</button>
-                <button class="btn btn-info" onclick="shareSummary('${item._id}')"><i class="fas fa-share"></i> Share</button>
-                <button class="btn btn-primary" onclick="downloadSummary('${item._id}')"><i class="fas fa-download"></i> Download</button>
-                <button class="btn btn-danger" onclick="deleteSummary('${item._id}')"><i class="fas fa-trash"></i> Delete</button>
+                <button class="btn btn-view" onclick="viewSummary('${item._id}')"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-edit" onclick="editSummary('${item._id}')"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-share" onclick="shareSummary('${item._id}')"><i class="fas fa-share-alt"></i></button>
+                <button class="btn btn-download" onclick="downloadSummary('${item._id}')"><i class="fas fa-download"></i></button>
+                <button class="btn btn-delete" onclick="deleteSummary('${item._id}')"><i class="fas fa-trash-alt"></i></button>
             </div>
         </div>
     `).join('');
@@ -707,14 +756,136 @@ function getSummaryById(id) {
 function viewSummary(id) {
     const summary = getSummaryById(id);
     if (summary) {
+        currentViewSummaryId = summary._id;
         elements.viewSummaryTitle.innerText = summary.title;
         elements.viewSummaryContent.innerHTML = summary.content;
+        elements.questionInput.value = '';
+        elements.answerOutput.style.display = 'none';
+        elements.answerOutput.innerHTML = '';
         elements.viewSummaryModal.style.display = 'flex';
     }
 }
 
+function askQuestion() {
+    const question = elements.questionInput.value.trim();
+    if (!question) {
+        showError('Please enter a question');
+        return;
+    }
+    if (!currentViewSummaryId) {
+        showError('No summary selected');
+        return;
+    }
+
+    elements.askQuestionBtn.disabled = true;
+    elements.askQuestionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    fetch('/api/ask-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+            contentId: currentViewSummaryId,
+            question
+        })
+    }).then(async (res) => {
+        if (res.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+        if (!res.ok) {
+            throw new Error('Failed to get answer');
+        }
+        return res.json();
+    }).then(data => {
+        elements.answerOutput.style.display = 'block';
+        elements.answerOutput.innerHTML = `<strong>Answer:</strong> ${data.answer}`;
+    }).catch(err => {
+        console.error(err);
+        showError('Could not get answer');
+    }).finally(() => {
+        elements.askQuestionBtn.disabled = false;
+        elements.askQuestionBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Ask';
+    });
+}
+
 function closeViewSummaryModal() {
     elements.viewSummaryModal.style.display = 'none';
+}
+
+function editSummary(id) {
+    const summary = getSummaryById(id);
+    if (summary) {
+        currentEditSummaryId = summary._id;
+        elements.editSummaryTitle.value = summary.title;
+        elements.editSummaryContent.innerHTML = summary.content;
+        elements.editSummaryModal.style.display = 'flex';
+    }
+}
+
+function closeEditSummaryModal() {
+    elements.editSummaryModal.style.display = 'none';
+    currentEditSummaryId = null;
+}
+
+async function saveEditedSummary() {
+    const title = elements.editSummaryTitle.value.trim();
+    const content = elements.editSummaryContent.innerHTML.trim();
+    
+    if (!title) {
+        showError('Please enter a title');
+        return;
+    }
+    
+    if (!content) {
+        showError('Please enter some content');
+        return;
+    }
+    
+    if (!currentEditSummaryId) {
+        showError('No summary selected for editing');
+        return;
+    }
+
+    elements.saveEditBtn.disabled = true;
+    elements.saveEditBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    try {
+        const response = await fetch(`/api/update-summary/${currentEditSummaryId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                title,
+                content
+            })
+        });
+
+        if (response.status === 401) {
+            window.location.href = '/login';
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error('Failed to update summary');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+            showSuccess('Summary updated successfully!');
+            closeEditSummaryModal();
+            // Refresh the dashboard to show updated content
+            await openDashboard();
+        } else {
+            throw new Error(result.error || 'Failed to update summary');
+        }
+    } catch (error) {
+        console.error('Update Summary Error:', error);
+        showError('Could not update the summary. Please try again.');
+    } finally {
+        elements.saveEditBtn.disabled = false;
+        elements.saveEditBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+    }
 }
 
 function downloadSummary(id) {
@@ -753,7 +924,7 @@ async function deleteSummary(id) {
 function shareSummary(id) {
     const shareUrl = `${window.location.origin}/share.html?id=${id}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
-        showSuccess('Share link copied to clipboard!');
+        showSuccess('📋 Share link copied to clipboard!');
     }, () => {
         showError('Could not copy the share link.');
     });
@@ -1099,10 +1270,81 @@ function hideLoading() {
  * Show success message
  */
 function showSuccess(message) {
-    // Simple success notification - could be enhanced with a toast library
+    // Create a toast notification
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification success';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas fa-check-circle"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Add styles
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        font-size: 14px;
+        font-weight: 500;
+        max-width: 300px;
+        animation: slideInRight 0.3s ease-out;
+    `;
+    
+    // Add animation styles
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        .toast-notification.success .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast-notification.success i {
+            color: #fff;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Add to page
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOutRight 0.3s ease-out';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+    
     console.log('Success:', message);
-    // You could add a toast notification here in the future
-    // For now, we'll just log to console
 }
 
 /**

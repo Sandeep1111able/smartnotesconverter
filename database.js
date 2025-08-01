@@ -78,3 +78,29 @@ export async function getContentById(contentId) {
     const content = await collection.findOne({ _id: new ObjectId(contentId) });
     return content;
 }
+
+export async function updateSummary(contentId, updateData) {
+    if (!db) {
+        throw new Error('Database not connected');
+    }
+    if (!ObjectId.isValid(contentId)) {
+        throw new Error(`Invalid content ID format: ${contentId}`);
+    }
+    const collection = db.collection('summaries');
+    const result = await collection.updateOne(
+        { _id: new ObjectId(contentId) },
+        { 
+            $set: {
+                ...updateData,
+                updated_at: new Date()
+            }
+        }
+    );
+    
+    if (result.modifiedCount === 0) {
+        throw new Error('No document was updated');
+    }
+    
+    // Return the updated document
+    return await collection.findOne({ _id: new ObjectId(contentId) });
+}

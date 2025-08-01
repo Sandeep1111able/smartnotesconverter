@@ -15,7 +15,7 @@ import session from 'express-session';
 import passport from 'passport';
 import { Strategy as Auth0Strategy } from 'passport-auth0';
 import fs from 'fs';
-import { connectToDatabase, saveSummary, getUserSummaries, deleteContent, getContentById } from './database.js';
+import { connectToDatabase, saveSummary, getUserSummaries, deleteContent, getContentById, updateSummary } from './database.js';
 
 
 dotenv.config();
@@ -362,6 +362,76 @@ app.get('/api/user-summaries', ensureAuthenticated, async (req, res) => {
         console.error('Error fetching summaries:', error);
         res.status(500).json({ error: 'Failed to fetch summaries' });
     }
+});
+
+// --- AI-Powered Q&A Endpoint ---
+app.post('/api/ask-question', ensureAuthenticated, async (req, res) => {
+  try {
+    const { contentId, question } = req.body;
+    if (!contentId || !question) {
+      return res.status(400).json({ error: 'Missing contentId or question' });
+    }
+
+    const content = await getContentById(contentId);
+    if (!content) {
+      return res.status(404).json({ error: 'Content not found' });
+    }
+
+    // Construct prompt for the AI
+    const prompt = `You are an expert assistant. Based on the following summary, answer the user question.\n\nSummary:\n${content.content}\n\nUser question: ${question}\n\nAnswer:`;
+
+    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 300,
+        temperature: 0.2
+      })
+    }).then(r => r.json());
+
+    const answer = aiResponse.choices && aiResponse.choices[0] ? aiResponse.choices[0].message.content.trim() : 'No answer';
+
+    res.json({ answer });
+  } catch (error) {
+    console.error('Q&A Error:', error);
+    res.status(500).json({ error: 'Failed to get answer' });
+  }
+});
+
+// --- Update Summary Endpoint ---
+app.put('/api/update-summary/:contentId', ensureAuthenticated, async (req, res) => {
+  try {
+    const { contentId } = req.params;
+    const { title, content } = req.body;
+    const userId = req.user.id;
+
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Title and content are required' });
+    }
+
+    // First check if the content exists and belongs to the user
+    const existingContent = await getContentById(contentId);
+    if (!existingContent) {
+      return res.status(404).json({ error: 'Content not found' });
+    }
+
+    if (existingContent.user_id !== userId) {
+      return res.status(403).json({ error: 'Not authorized to edit this content' });
+    }
+
+    // Update the content in the database
+    const updatedContent = await updateSummary(contentId, { title, content });
+    
+    res.json({ success: true, summary: updatedContent });
+  } catch (error) {
+    console.error('Error updating summary:', error);
+    res.status(500).json({ error: 'Failed to update summary' });
+  }
 });
 
 app.delete('/api/delete-content/:contentId', ensureAuthenticated, async (req, res) => {
