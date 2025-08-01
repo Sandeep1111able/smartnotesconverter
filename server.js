@@ -15,6 +15,8 @@ import session from 'express-session';
 import passport from 'passport';
 import { Strategy as Auth0Strategy } from 'passport-auth0';
 import fs from 'fs';
+import { connectToDatabase, saveSummary, getUserSummaries, deleteContent, getContentById } from './database.js';
+
 
 dotenv.config();
 
@@ -297,6 +299,82 @@ app.post('/api/ocr-google', async (req, res) => {
   }
 });
 
+
+// Initialize database connection
+connectToDatabase();
+
+// --- Database Routes ---
+app.post('/api/save-summary', ensureAuthenticated, async (req, res) => {
+    try {
+        const { title, content, originalText } = req.body;
+        const userId = req.user.id;
+        
+        const summaryData = {
+            user_id: userId,
+            title: title || 'Untitled Summary',
+            content: content,
+            original_text: originalText,
+            type: 'summary'
+        };
+        
+        const savedSummary = await saveSummary(summaryData);
+        res.json({ success: true, summary: savedSummary });
+    } catch (error) {
+        console.error('Error saving summary:', error);
+        res.status(500).json({ error: 'Failed to save summary' });
+    }
+});
+
+app.get('/api/user-summaries', ensureAuthenticated, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const summaries = await getUserSummaries(userId);
+        // Explicitly convert ObjectId to string to be safe
+        const summariesWithStringIds = summaries.map(summary => ({
+            ...summary,
+            _id: summary._id.toString()
+        }));
+        res.json({ summaries: summariesWithStringIds });
+    } catch (error) {
+        console.error('Error fetching summaries:', error);
+        res.status(500).json({ error: 'Failed to fetch summaries' });
+    }
+});
+
+app.delete('/api/delete-content/:contentId', ensureAuthenticated, async (req, res) => {
+    try {
+        const { contentId } = req.params;
+        console.log('Received delete request for ID:', contentId); // Added for debugging
+        const userId = req.user.id;
+        
+        const deleted = await deleteContent(contentId, userId);
+        if (deleted) {
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ error: 'Content not found or user not authorized' });
+        }
+    } catch (error) {
+        console.error('Error deleting content:', error);
+        res.status(500).json({ error: 'Failed to delete content' });
+    }
+});
+
+app.get('/api/share/:contentId', async (req, res) => {
+    try {
+        const { contentId } = req.params;
+        const content = await getContentById(contentId);
+        if (content) {
+            res.json(content);
+        } else {
+            res.status(404).json({ error: 'Content not found' });
+        }
+    } catch (error) {
+        console.error('Error fetching shared content:', error);
+        res.status(500).json({ error: 'Failed to fetch content' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-}); 
+});
+ 

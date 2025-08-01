@@ -30,6 +30,9 @@ let quizData = null;
 let currentQuestionIndex = 0;
 let userAnswers = [];
 let quizCompleted = false;
+let savedSummaries = [];
+
+
 
 // DOM Elements
 const elements = {
@@ -42,6 +45,7 @@ const elements = {
     quizBtn: null,
     summarySection: null,
     summaryContent: null,
+    saveSummaryBtn: null,
     downloadPdfBtn: null,
     loadingOverlay: null,
     loadingText: null,
@@ -63,7 +67,27 @@ const elements = {
     errorModal: null,
     closeErrorModal: null,
     errorMessage: null,
-    closeErrorBtn: null
+    closeErrorBtn: null,
+    // Title modal elements
+    titleModal: null,
+    closeTitleModal: null,
+    summaryTitleInput: null,
+    saveTitleBtn: null,
+    // Dashboard modal elements
+    savedContentLink: null,
+    dashboardModal: null,
+    closeDashboardModal: null,
+    dashboardContent: null,
+    // View Summary modal elements
+    viewSummaryModal: null,
+    closeViewSummaryModal: null,
+    viewSummaryTitle: null,
+    viewSummaryContent: null,
+    // Profile modal elements
+    profileLink: null,
+    profileModal: null,
+    closeProfileModal: null,
+    profileContent: null
 };
 
 /**
@@ -88,6 +112,7 @@ function initializeElements() {
     elements.quizBtn = document.getElementById('quizBtn');
     elements.summarySection = document.getElementById('summarySection');
     elements.summaryContent = document.getElementById('summaryContent');
+    elements.saveSummaryBtn = document.getElementById('saveSummaryBtn');
     elements.downloadPdfBtn = document.getElementById('downloadPdfBtn');
     elements.loadingOverlay = document.getElementById('loadingOverlay');
     elements.loadingText = document.getElementById('loadingText');
@@ -111,6 +136,30 @@ function initializeElements() {
     elements.closeErrorModal = document.getElementById('closeErrorModal');
     elements.errorMessage = document.getElementById('errorMessage');
     elements.closeErrorBtn = document.getElementById('closeErrorBtn');
+
+    // Title modal elements
+    elements.titleModal = document.getElementById('titleModal');
+    elements.closeTitleModal = document.getElementById('closeTitleModal');
+    elements.summaryTitleInput = document.getElementById('summaryTitleInput');
+    elements.saveTitleBtn = document.getElementById('saveTitleBtn');
+
+    // Dashboard modal elements
+    elements.savedContentLink = document.getElementById('savedContentLink');
+    elements.dashboardModal = document.getElementById('dashboardModal');
+    elements.closeDashboardModal = document.getElementById('closeDashboardModal');
+    elements.dashboardContent = document.getElementById('dashboardContent');
+
+    // View Summary modal elements
+    elements.viewSummaryModal = document.getElementById('viewSummaryModal');
+    elements.closeViewSummaryModal = document.getElementById('closeViewSummaryModal');
+    elements.viewSummaryTitle = document.getElementById('viewSummaryTitle');
+    elements.viewSummaryContent = document.getElementById('viewSummaryContent');
+
+    // Profile modal elements
+    elements.profileLink = document.getElementById('profileLink');
+    elements.profileModal = document.getElementById('profileModal');
+    elements.closeProfileModal = document.getElementById('closeProfileModal');
+    elements.profileContent = document.getElementById('profileContent');
 }
 
 /**
@@ -128,6 +177,7 @@ function setupEventListeners() {
     elements.extractBtn.addEventListener('click', extractTextFromFile);
     elements.summarizeBtn.addEventListener('click', generateSummary);
     elements.quizBtn.addEventListener('click', generateQuiz);
+    elements.saveSummaryBtn.addEventListener('click', saveSummary);
     elements.downloadPdfBtn.addEventListener('click', downloadSummaryAsPDF);
 
     // Quiz modal events
@@ -146,6 +196,27 @@ function setupEventListeners() {
     // Error modal events
     elements.closeErrorModal.addEventListener('click', closeErrorModal);
     elements.closeErrorBtn.addEventListener('click', closeErrorModal);
+
+    // Title modal events
+    elements.closeTitleModal.addEventListener('click', closeTitleModal);
+    elements.saveTitleBtn.addEventListener('click', handleSaveTitle);
+
+    // Dashboard modal events
+    elements.savedContentLink.addEventListener('click', openDashboard);
+    elements.closeDashboardModal.addEventListener('click', closeDashboard);
+
+    // View Summary modal event
+    elements.closeViewSummaryModal.addEventListener('click', closeViewSummaryModal);
+
+    // Profile modal events
+    elements.profileLink.addEventListener('click', openProfileModal);
+    elements.closeProfileModal.addEventListener('click', closeProfileModal);
+
+
+
+
+
+
 
     // Close error modal when clicking outside
     elements.errorModal.addEventListener('click', (e) => {
@@ -367,6 +438,13 @@ async function generateSummary() {
         elements.summarySection.style.display = 'block';
         elements.summarySection.scrollIntoView({ behavior: 'smooth' });
 
+        // Show save button if user is logged in
+        if (document.getElementById('logoutBtn').style.display !== 'none') {
+            elements.saveSummaryBtn.style.display = 'inline-flex';
+            elements.saveSummaryBtn.innerHTML = '<i class="fas fa-save"></i> Save Summary';
+            elements.saveSummaryBtn.disabled = false;
+        }
+
         hideLoading();
         showSuccess('Summary generated successfully!');
 
@@ -376,6 +454,7 @@ async function generateSummary() {
         console.error('Summary Error:', error);
     }
 }
+
 
 /**
  * Generate quiz using OpenAI API
@@ -453,6 +532,238 @@ ${text}`;
         console.error('Quiz Error:', error);
     }
 }
+
+/**
+ * Open the modal to ask for a summary title.
+ */
+function saveSummary() {
+    const summaryContent = elements.summaryContent.innerHTML;
+    if (!summaryContent.trim()) {
+        showError('Please generate a summary first before saving');
+        return;
+    }
+    openTitleModal();
+}
+
+/**
+ * Handles the actual saving process after getting a title.
+ */
+async function handleSaveTitle() {
+    const title = elements.summaryTitleInput.value.trim();
+    if (!title) {
+        showError('Please enter a title for your summary.');
+        return;
+    }
+
+    closeTitleModal();
+    showLoading('Saving summary...');
+
+    const summaryContent = elements.summaryContent.innerHTML;
+    const originalText = elements.extractedText.value;
+
+    try {
+        const response = await fetch('/api/save-summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: title,
+                content: summaryContent,
+                originalText: originalText
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to save summary');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+            hideLoading();
+            showSuccess('Summary saved successfully!');
+            elements.saveSummaryBtn.innerHTML = '<i class="fas fa-check"></i> Saved';
+            elements.saveSummaryBtn.disabled = true;
+        } else {
+            throw new Error(result.error || 'Failed to save summary');
+        }
+    } catch (error) {
+        hideLoading();
+        showError('Sorry, I couldn\'t save the summary right now. Please try again.');
+        console.error('Save Summary Error:', error);
+    }
+}
+
+/**
+ * Opens the title modal.
+ */
+function openTitleModal() {
+    elements.summaryTitleInput.value = '';
+    elements.titleModal.style.display = 'flex';
+    elements.summaryTitleInput.focus();
+}
+
+/**
+ * Closes the title modal.
+ */
+function closeTitleModal() {
+    elements.titleModal.style.display = 'none';
+}
+
+/**
+ * Opens the dashboard and fetches saved content.
+ */
+async function openDashboard() {
+    elements.dashboardModal.style.display = 'flex';
+    elements.dashboardContent.innerHTML = '<p>Loading saved content...</p>';
+
+    try {
+        const response = await fetch('/api/user-summaries');
+        if (!response.ok) {
+            throw new Error('Failed to fetch saved content');
+        }
+        const { summaries } = await response.json();
+        displaySavedContent(summaries);
+    } catch (error) {
+        elements.dashboardContent.innerHTML = '<p>Could not load saved content.</p>';
+        console.error('Dashboard Error:', error);
+    }
+}
+
+/**
+ * Closes the dashboard modal.
+ */
+function closeDashboard() {
+    elements.dashboardModal.style.display = 'none';
+}
+
+/**
+ * Displays the saved content in the dashboard.
+ * @param {Array} summaries - The array of saved summaries.
+ */
+function displaySavedContent(summaries) {
+    savedSummaries = summaries; // Store for later use
+    if (!summaries || summaries.length === 0) {
+        elements.dashboardContent.innerHTML = '<p>You have no saved content.</p>';
+        return;
+    }
+
+    elements.dashboardContent.innerHTML = summaries.map(item => `
+        <div class="saved-item" data-id="${item._id}">
+            <span class="saved-item-title">${item.title}</span>
+            <div class="saved-item-actions">
+                <button class="btn btn-secondary" onclick="viewSummary('${item._id}')"><i class="fas fa-eye"></i> View</button>
+                <button class="btn btn-info" onclick="shareSummary('${item._id}')"><i class="fas fa-share"></i> Share</button>
+                <button class="btn btn-primary" onclick="downloadSummary('${item._id}')"><i class="fas fa-download"></i> Download</button>
+                <button class="btn btn-danger" onclick="deleteSummary('${item._id}')"><i class="fas fa-trash"></i> Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function getSummaryById(id) {
+    return savedSummaries.find(summary => summary._id === id);
+}
+
+function viewSummary(id) {
+    const summary = getSummaryById(id);
+    if (summary) {
+        elements.viewSummaryTitle.innerText = summary.title;
+        elements.viewSummaryContent.innerHTML = summary.content;
+        elements.viewSummaryModal.style.display = 'flex';
+    }
+}
+
+function closeViewSummaryModal() {
+    elements.viewSummaryModal.style.display = 'none';
+}
+
+function downloadSummary(id) {
+    const summary = getSummaryById(id);
+    if (summary) {
+        // Temporarily set the content for the PDF generation function
+        elements.summaryContent.innerHTML = summary.content;
+        // The original text might not be available here, so we'll pass an empty string
+        elements.extractedText.value = summary.original_text || '';
+        downloadSummaryAsPDF();
+    }
+}
+
+async function deleteSummary(id) {
+    if (!confirm('Are you sure you want to delete this summary?')) {
+        return;
+    }
+
+    showLoading('Deleting...');
+
+    try {
+        const response = await fetch(`/api/delete-content/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            throw new Error('Failed to delete summary');
+        }
+        await openDashboard(); // Refresh the dashboard
+        hideLoading();
+        showSuccess('Item deleted successfully!');
+    } catch (error) {
+        hideLoading();
+        showError('Could not delete the item.');
+        console.error('Delete Error:', error);
+    }
+}
+
+function shareSummary(id) {
+    const shareUrl = `${window.location.origin}/share.html?id=${id}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        showSuccess('Share link copied to clipboard!');
+    }, () => {
+        showError('Could not copy the share link.');
+    });
+}
+
+async function openProfileModal() {
+    elements.profileModal.style.display = 'flex';
+    elements.profileContent.innerHTML = '<p>Loading profile...</p>';
+
+    try {
+        const response = await fetch('/user');
+        if (!response.ok) {
+            throw new Error('Failed to fetch user data');
+        }
+        const { user } = await response.json();
+        displayProfile(user);
+    } catch (error) {
+        elements.profileContent.innerHTML = '<p>Could not load profile.</p>';
+        console.error('Profile Error:', error);
+    }
+}
+
+function closeProfileModal() {
+    elements.profileModal.style.display = 'none';
+}
+
+function displayProfile(user) {
+    if (!user) {
+        elements.profileContent.innerHTML = '<p>No user data found.</p>';
+        return;
+    }
+
+    const userEmail = (user.emails && user.emails.length > 0) ? user.emails[0].value : 'Not available';
+
+    elements.profileContent.innerHTML = `
+        <div class="profile-info">
+            <img src="${user.picture}" alt="Profile Picture">
+            <div class="profile-details">
+                <p><strong>Name:</strong> ${user.displayName || user.nickname}</p>
+                <p><strong>Email:</strong> ${userEmail}</p>
+            </div>
+        </div>
+    `;
+}
+
+
+
+
+
+
+
 
 /**
  * Call OpenAI API via backend
@@ -971,6 +1282,8 @@ function setupNavbarAuth() {
                 loginBtn.style.display = 'none';
                 logoutBtn.style.display = 'inline-flex';
                 navbarUser.style.display = 'inline-block';
+                elements.savedContentLink.style.display = 'inline-block';
+                elements.profileLink.style.display = 'inline-block';
                 // Show user name or email
                 navbarUser.textContent = data.user.displayName || data.user.nickname || (data.user.emails && data.user.emails[0]) || 'User';
             } else {
@@ -978,6 +1291,8 @@ function setupNavbarAuth() {
                 loginBtn.style.display = 'inline-flex';
                 logoutBtn.style.display = 'none';
                 navbarUser.style.display = 'none';
+                elements.savedContentLink.style.display = 'none';
+                elements.profileLink.style.display = 'none';
                 navbarUser.textContent = '';
             }
         })

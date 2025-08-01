@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Content</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div id="sharedContent" class="card"></div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const contentId = new URLSearchParams(window.location.search).get('id');
+            const sharedContent = document.getElementById('sharedContent');
+            if (contentId) {
+                try {
+                    const response = await fetch(`/api/share/${contentId}`);
+                    if (response.ok) {
+                        const content = await response.json();
+                        sharedContent.innerHTML = `
+                            <div class="card-header">
+                                <h2>${content.title}</h2>
+                            </div>
+                            <div class="card-body">
+                                ${content.content}
+                            </div>
+                        `;
+                    } else {
+                        sharedContent.innerHTML = '<p>Content not found.</p>';
+                    }
+                } catch (error) {
+                    sharedContent.innerHTML = '<p>Error loading content.</p>';
+                }
+            } else {
+                sharedContent.innerHTML = '<p>No content to display.</p>';
+            }
+        });
+    </script>
+</body>
+</html>

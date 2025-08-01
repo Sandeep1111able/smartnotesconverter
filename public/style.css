@@ -690,4 +690,82 @@ body {
     .quiz-container {
         padding: 20px;
     }
-} 
+}
+
+/* Title Modal Specifics */
+#titleModal .modal-body {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+#summaryTitleInput {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+}
+
+#summaryTitleInput:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* Dashboard Modal Specifics */
+#dashboardContent {
+    padding: 30px;
+}
+
+.saved-item {
+    background: #f8f9ff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.saved-item-title {
+    font-weight: 600;
+}
+
+.saved-item-actions button {
+    margin-left: 10px;
+}
+
+/* View Summary Modal Specifics */
+#viewSummaryContent {
+    padding: 30px;
+    white-space: pre-line;
+}
+
+/* Profile Modal Specifics */
+#profileContent {
+    padding: 30px;
+}
+
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.profile-info img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+}
+
+.profile-details p {
+    margin: 5px 0;
+}
+
+
+
+
+ 

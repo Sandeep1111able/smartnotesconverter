@@ -17,6 +17,8 @@
         </div>
         <ul class="navbar-links">
             <li><a href="#" class="nav-link home-link"><i class="fas fa-home"></i> Home</a></li>
+            <li><a href="#" class="nav-link" id="savedContentLink" style="display:none;"><i class="fas fa-bookmark"></i> Saved Content</a></li>
+            <li><a href="#" class="nav-link" id="profileLink" style="display:none;"><i class="fas fa-user"></i> Profile</a></li>
         </ul>
         <div class="navbar-actions">
             <span id="navbar-user" style="display:none;"></span>
@@ -121,6 +123,9 @@
                         <!-- Summary will be inserted here -->
                     </div>
                     <div class="summary-actions">
+                        <button class="btn btn-secondary" id="saveSummaryBtn" style="display: none;">
+                            <i class="fas fa-save"></i> Save Summary
+                        </button>
                         <button class="btn btn-primary" id="downloadPdfBtn">
                             <i class="fas fa-download"></i> Download PDF
                         </button>
@@ -212,6 +217,67 @@
                             <i class="fas fa-redo"></i> Retry Quiz
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Title Modal -->
+        <div class="modal" id="titleModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-edit"></i> Name Your Summary</h2>
+                    <button class="modal-close" id="closeTitleModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="summaryTitleInput" placeholder="Enter title...">
+                    <button class="btn btn-primary" id="saveTitleBtn">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saved Content Dashboard Modal -->
+        <div class="modal" id="dashboardModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-bookmark"></i> Saved Content</h2>
+                    <button class="modal-close" id="closeDashboardModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="dashboardContent">
+                    <!-- Saved content will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- View Summary Modal -->
+        <div class="modal" id="viewSummaryModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="viewSummaryTitle"><i class="fas fa-file-alt"></i> Summary</h2>
+                    <button class="modal-close" id="closeViewSummaryModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="viewSummaryContent">
+                    <!-- Summary content will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Modal -->
+        <div class="modal" id="profileModal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-user"></i> User Profile</h2>
+                    <button class="modal-close" id="closeProfileModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="profileContent">
+                    <!-- Profile content will be loaded here -->
                 </div>
             </div>
         </div>
