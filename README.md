@@ -1,12 +1,6 @@
-# Smart Notes Converter 🧠
+# Smart Notes Converter 
 
 Transform raw notes (images, PDFs, text) into polished summaries and quizzes powered by OCR, OpenAI & Auth0.
-
-<p align="center">
-  <img src="docs/smartnotes_banner.png" alt="Smart Notes Converter" width="600"/>
-</p>
-
-> **Disclaimer**: This project was built for an academic capstone.  The code is publicly available for learning purposes only; please keep API keys & secrets in environment variables.
 
 ---
 
