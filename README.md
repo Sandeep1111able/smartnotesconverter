@@ -76,7 +76,7 @@ Visit `http://localhost:5000`.
 
 ---
 
-## ☁️ Azure Deployment
+##  Azure Deployment
 
 1.  **Create** an App Service (Linux, Node 18 LTS).
 2.  **Configure** the same environment variables in *Configuration → Application Settings*.
